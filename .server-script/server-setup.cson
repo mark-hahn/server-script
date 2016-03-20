@@ -1,8 +1,16 @@
-# This file specifies the server location and login information
+
+# This file specifies server-script configuration for this project
+# To set up your login, see the secrets.cson file in this folder
+# If you cannot see secrets.cson in Atom, click on the treeview and press the letter i
 
 server:
   location: 'http://example.com:1234'
-  login: # remove if using key'
-    user: 'user'      
-    password: 'myPwd'
-rootDir: '/home/me/myProject/'
+  projectRoot: '/home/me/myProject/'
+  # see note above about login info
+
+options:
+  syncChangedFiles: yes
+  useGitignore: yes
+  scriptsRunOnSave: ['build.sh']
+  scriptsRunOnCommand: ['build.sh']  
+  

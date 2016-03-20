@@ -18,6 +18,8 @@ module.exports =
     
   initSetupFolder: ->
     fs.copySync 'init-setup-folder', @serverScriptFolder
+    ignorePath = path.join @serverScriptFolder, '.gitignore'
+    fs.writeFileSync ignorePath, 'secrets.cson\n.run-server-script.sh\n'
     atom.notifications.addInfo \
         "A new .server-script folder was created in the root folder.", dismissable: true
     
