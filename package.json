@@ -1,0 +1,23 @@
+{
+  "name": "server-script",
+  "version": "1.0.0",
+  "description": "Atom editor package to run local script in server on every save",
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "git@github.com/mark-hahn/server-script.git"
+  },
+  "keywords": [
+    "atom",
+    "editor",
+    "script",
+    "remote",
+    "save"
+  ],
+  "author": "Mark Hahn",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/mark-hahn/server-script/issues"
+  },
+  "homepage": "https://github.com/mark-hahn/server-script#readme"
+}
