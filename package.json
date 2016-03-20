@@ -1,8 +1,8 @@
 {
   "name": "server-script",
-  "version": "1.0.0",
-  "description": "Atom editor package to run local script in server on every save",
-  "main": "index.js",
+  "version": "0.1.0",
+  "description": "Atom editor package to update files and run a local script on the server on every save",
+  "main": "lib/server-script.coffee",
   "repository": {
     "type": "git",
     "url": "git@github.com/mark-hahn/server-script.git"
@@ -19,5 +19,10 @@
   "bugs": {
     "url": "https://github.com/mark-hahn/server-script/issues"
   },
-  "homepage": "https://github.com/mark-hahn/server-script#readme"
+  "homepage": "https://github.com/mark-hahn/server-script#readme",
+  "dependencies": {
+    "filewalker": "^0.1.2",
+    "gitignore-parser": "0.0.2",
+    "sub-atom": "^1.1.0"
+  }
 }
