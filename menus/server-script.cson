@@ -1,14 +1,7 @@
 # See https://atom.io/docs/latest/creating-a-package#menus for more details
 'context-menu':
   'atom-workspace': [
-    label: 'Line Count' 
-    command: 'line-count:open'
+    label: 'Save files & run server script' 
+    command: 'server-script:save'
   ]
-  
-menu: [
-    label: 'Packages'
-    submenu: [
-      label: 'Line Count'
-      command: 'line-count:open'
-    ]
-]
+

@@ -22,6 +22,7 @@
   "homepage": "https://github.com/mark-hahn/server-script#readme",
   "dependencies": {
     "filewalker": "^0.1.2",
+    "fs-plus": "^2.8.1",
     "gitignore-parser": "0.0.2",
     "sub-atom": "^1.1.0"
   }

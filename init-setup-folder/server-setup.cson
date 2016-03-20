@@ -1,0 +1,8 @@
+# This file specifies the server location and login information
+
+server:
+  location: 'http://example.com:1234'
+  login: # remove if using key'
+    user: 'user'      
+    password: 'myPwd'
+rootDir: '/home/me/myProject/'
