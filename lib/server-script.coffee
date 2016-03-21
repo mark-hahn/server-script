@@ -5,7 +5,9 @@ fs         = require 'fs-plus'
 path       = require 'path'
 filewalker = require 'filewalker'
 parser     = require 'gitignore-parser'
+cson       = require 'season'
 SubAtom    = require 'sub-atom'
+{execSync} = require 'child_process'
 
 module.exports =
   activate: ->
@@ -26,11 +28,35 @@ module.exports =
         "A new .server-script folder was created in the root folder. " +
         "Edit .server-script/server-setup.cson to start using server-script.", 
         dismissable: true
-    
+        
+  loadCsonInitFile: (name) ->
+    try
+      return cson.readFileSync path.join @serverScriptFolder, name
+    catch e
+      atom.notifications.addError "Error processing #{name}: " + e.message,
+                                   dismissable: true
+  doSSH: (cmd) ->
+    cmdStr = 'ssh ' + @server + ' ' + cmd
+    try
+      return execSync cmdStr, timeout:5e3, encoding:'utf8', maxBuffer:10e6
+    catch e
+      loc = @setup.server.location
+      atom.notifications.addError "Error executing command #{cmdStr} on #{loc}: " + e.message,
+                                   dismissable: true
   save: ->
     if not fs.existsSync @serverScriptFolder then @initSetupFolder(); return
+    if not (@setup  = @loadCsonInitFile 'server-setup.cson') or
+       not (secret = @loadCsonInitFile 'secrets.cson') then return
+    pwdStr = (if secret.password then ':' + password else '')
+    @server = secret.login.user + pwdStr + '@' + @setup.server.location
     
-  #     
+    runScript = fs.readFileSync 'init-setup-folder/.run-server-script.sh', 'utf8'
+    runPath = path.join @serverScriptFolder, '.run-server-script.sh'
+    fs.writeFileSync runPath, runScript
+    console.log @setup, secret, @server
+    
+    console.log @doSSH 'ls -al'
+  #
   #   
   #   
   # 
