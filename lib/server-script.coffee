@@ -12,15 +12,16 @@ SubAtom    = require 'sub-atom'
 module.exports =
   activate: ->
     @subs = new SubAtom
-    @subs.add atom.commands.add 'atom-workspace', 'server-script:run': => @run()
+    @subs.add atom.commands.add 'atom-workspace', 'server-script:run': => @run 'run'
     @rootDirPath = atom.project.getDirectories()[0].getPath()
     @serverScriptFolder = path.join @rootDirPath, '.server-script'
     
   initSetupFolder: ->
     fs.copySync 'init-setup-folder', @serverScriptFolder
-    fs.writeFileSync ignorePath, 'secrets.cson\n.run-server-script.sh\n'
+    ignorePath = @serverScriptFolder + '/.ignore'
+    fs.writeFileSync ignorePath, 'secrets.cson\n'
     atom.notifications.addInfo \
-        "A new .server-script folder was created in the root folder. " +
+        "The folder .server-script was created in the root folder. " +
         "Edit .server-script/server-setup.cson to start using server-script.", 
         dismissable: true
         
@@ -48,6 +49,14 @@ module.exports =
     if not fs.existsSync @serverScriptFolder then @initSetupFolder(); return
     if not (@setup = @loadCsonInitFile 'server-setup.cson') or
        not (secret = @loadCsonInitFile 'secrets.cson') then return
+    if action is 'run' and 
+       not @setup.options.syncChangedFiles and
+       not @setup.options.scriptOnRun
+      atom.notifications.addInfo \
+          "Server-script has nothing to run. " +
+          "Edit .server-script/server-setup.cson to start using server-script.", 
+           dismissable: true
+      return
     pwdStr = (if secret.login.password then ':' + secret.login.password else '')
     usrStr = (if secret.login.user then secret.login.user + pwdStr + '@' else '')
     @server = usrStr + @setup.server.location
@@ -55,30 +64,31 @@ module.exports =
     remotePath = @server + ':' + root
     
     doScript = =>
-      script = (if action is 'save' then @setup.options.scriptRunOnSave \
-                                    else @setup.options.scriptRunOnCommand)
-      remoteScript = "#{remotePath}/#{script}"
-      @doExec "rsync -a #{@serverScriptFolder}/#{script} #{remoteScript}", =>
-        @doExec "ssh #{@server} chmod +x #{root}/#{script}", =>
-          if @setup.options.logToConsole
-            console.log 'server-script: starting', remoteScript
-          child = spawn 'ssh', [@server, "#{root}/#{script}"]
-          if @setup.options.logToConsole
-            child.stdout.on 'data', (data) ->
-              console.log 'server-script, stdout:', data.toString()
-            child.stderr.on 'data', (data) ->
-              console.log 'server-script, stderr:', data.toString()
-          child.on 'error', (err) ->
-            atom.notifications.addError \
-              "Error executing script #{remoteScript}: " + err.message,
-               dismissable: true
-          child.on 'close', (code) =>
-            if code isnt 0
-              atom.notifications.addWarning \
-                "#{remoteScript} returned code: " + code, dismissable: true
+      script = (if action is 'save' then @setup.options.scriptOnSave \
+                                    else @setup.options.scriptOnRun)
+      if script
+        remoteScript = "#{remotePath}/#{script}"
+        @doExec "rsync -a #{@serverScriptFolder}/#{script} #{remoteScript}", =>
+          @doExec "ssh #{@server} chmod +x #{root}/#{script}", =>
             if @setup.options.logToConsole
-              console.log 'server-script: script', remoteScript, 'exited with code:', code
-  
+              console.log 'server-script: starting', remoteScript
+            child = spawn 'ssh', [@server, "#{root}/#{script}"]
+            if @setup.options.logToConsole
+              child.stdout.on 'data', (data) ->
+                console.log 'server-script, stdout:', data.toString()
+              child.stderr.on 'data', (data) ->
+                console.log 'server-script, stderr:', data.toString()
+            child.on 'error', (err) ->
+              atom.notifications.addError \
+                "Error executing script #{remoteScript}: " + err.message,
+                 dismissable: true
+            child.on 'close', (code) =>
+              if code isnt 0
+                atom.notifications.addWarning \
+                  "#{remoteScript} returned code: " + code, dismissable: true
+              if @setup.options.logToConsole
+                console.log 'server-script: script', remoteScript, 'exited with code:', code
+    
     if @setup.options.syncChangedFiles
       gitIgnStr = (if @setup.options.useGitignore \
                    then "--exclude=.git --filter=':- .gitignore' " else '')

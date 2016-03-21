@@ -1,16 +1,16 @@
 
 # This file specifies server-script configuration for this project
 # If you cannot see secrets.cson in Atom, click on the treeview and press the letter i
-# scripts listed below should be in this folder
 
 server:
-  location: 'example.com'
-  projectRoot: '/home/me/myProject/'
-  # to setup login, see the secrets.cson file in this folder
+  location: ''
+  projectRoot: ''
+  # login info is kept in secrets.cson
 
 options:
-  syncChangedFiles: yes
+  syncChangedFiles: no
+  scriptOnRun:  '' # use 'build.sh' for testing
+  scriptOnSave: '' 
   useGitignore: yes
-  scriptsRunOnSave: ['build.sh']
-  scriptsRunOnCommand: ['build.sh']  
+  logToConsole: yes
   

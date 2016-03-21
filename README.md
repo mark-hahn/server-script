@@ -1,6 +1,6 @@
 # server-script
 
-*Atom editor package to update files and run a local script on the server on every save*
+*Atom editor package to sync files and run a script on the server on every save*
 
 Write and edit a script on the local machine with Atom and then run the script on a server using an Atom command or run on every save. You will be able to move existing server scripts to local and then run them on any server without putting the script on the server.
 
