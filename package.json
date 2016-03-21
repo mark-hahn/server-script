@@ -1,7 +1,7 @@
 {
   "name": "server-script",
   "version": "0.1.0",
-  "description": "Atom editor package to update files and run a local script on the server on every save",
+  "description": "Atom editor package to sync files and/or run a script on the server",
   "main": "lib/server-script.coffee",
   "repository": {
     "type": "git",

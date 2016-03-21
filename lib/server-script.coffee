@@ -13,7 +13,6 @@ module.exports =
   activate: ->
     @subs = new SubAtom
     @subs.add atom.commands.add 'atom-workspace', 'server-script:run': => @run 'run'
-    @gitIgnoreStr = "--exclude=.git --filter=':- .gitignore' "
     atom.workspace.observeTextEditors (editor) =>
       @subs.add editor.onDidSave => @run 'save'
     
@@ -23,7 +22,7 @@ module.exports =
     fs.writeFileSync ignorePath, 'secrets.cson\n'
     atom.notifications.addInfo \
         "The folder .server-script was created in the root folder. " +
-        "Edit .server-script/server-setup.cson to start using server-script.", 
+        "Edit .server-script/setup.cson to start using server-script.", 
         dismissable: true
         
   loadCsonInitFile: (name) ->
@@ -53,14 +52,14 @@ module.exports =
     if not fs.existsSync @serverScriptFolder 
       if action is 'run' then @initSetupFolder()
       return
-    if not (@setup = @loadCsonInitFile 'server-setup.cson') or
+    if not (@setup = @loadCsonInitFile 'setup.cson') or
        not (secret = @loadCsonInitFile 'secrets.cson') then return
     if action is 'run' and 
        not @setup.options.syncChangedFiles and
        not @setup.options.scriptOnRun
       atom.notifications.addInfo \
           "Server-script has nothing to run. " +
-          "Edit .server-script/server-setup.cson to start using server-script.", 
+          "Edit .server-script/setup.cson to start using server-script.", 
            dismissable: true
       return 
     pwdStr = (if secret.login.password then ':' + secret.login.password else '')
@@ -96,8 +95,10 @@ module.exports =
               if @setup.options.logToConsole
                 console.log 'server-script: script', remoteScript, 'exited with code:', code
     if @setup.options.syncChangedFiles
-      gitIgnStr = (if @setup.options.useGitignore then @gitIgnoreStr else '')
-      @doExec "rsync -a #{gitIgnStr}#{@rootDirPath}/ #{remotePath}/", doScript
+      gitIgnoreStr = (if @setup.options.useGitignore  \
+                       then "--exclude=.git --filter=':- .gitignore' " 
+                       else '')
+      @doExec "rsync -a #{gitIgnoreStr}#{@rootDirPath}/ #{remotePath}/", doScript
     else doScript()
         
   deactivate: ->
