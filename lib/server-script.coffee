@@ -30,8 +30,18 @@ module.exports =
     catch e
       atom.notifications.addError "Error processing #{name}: " + e.message,
                                    dismissable: true
+  doRsync: (cmd) ->
+    cmdStr = 'rsync -a' + cmd
+    console.log cmdStr
+    try
+      return execSync cmdStr, timeout:5e3, encoding:'utf8', maxBuffer:10e6
+    catch e
+      loc = @setup.server.location
+      atom.notifications.addError "Error executing rsync #{cmdStr} on #{loc}: " + e.message,
+                                   dismissable: true
   doSSH: (cmd) ->
     cmdStr = 'ssh ' + @server + ' ' + cmd
+    console.log cmdStr
     try
       return execSync cmdStr, timeout:5e3, encoding:'utf8', maxBuffer:10e6
     catch e
@@ -45,15 +55,13 @@ module.exports =
     pwdStr = (if secret.login.password then ':' + secret.login.password else '')
     usrStr = (if secret.login.user then secret.login.user + pwdStr + '@' else '')
     @server = usrStr + @setup.server.location
-    console.log @server, '\n', @doSSH 'ls -al'
+    # console.log @server, '\n', @doSSH 'ls -al'
     
     if @setup.options.syncChangedFiles
       gitIgnStr = (if @setup.options.useGitignore \
                    then " --exclude=.git --filter=':- .gitignore' " else ' ')
       remotePath = @server + ':' + path.normalize @setup.server.projectRoot
-      cmd = 'rsync -a' + gitIgnStr + "#{@rootDirPath}/ #{remotePath}/\n"
-      console.log cmd
-      console.log execSync cmd, timeout:5e3, encoding:'utf8', maxBuffer:10e6
+      @doRsync gitIgnStr + "#{@rootDirPath}/ #{remotePath}/\n"
     
     # runScript = fs.readFileSync 'init-setup-folder/.run-server-script.sh', 'utf8'
     # runPath = path.join @serverScriptFolder, '.run-server-script.sh'
