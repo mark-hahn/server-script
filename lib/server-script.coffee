@@ -7,7 +7,7 @@ filewalker = require 'filewalker'
 gitIgParse = require 'gitignore-parser'
 cson       = require 'season'
 SubAtom    = require 'sub-atom'
-{execSync} = require 'child_process'
+{execSync, spawn} = require 'child_process'
 
 module.exports =
   activate: ->
@@ -32,7 +32,7 @@ module.exports =
                                    dismissable: true
   doRsync: (cmd) ->
     cmdStr = 'rsync -a ' + cmd
-    console.log cmdStr
+    # console.log cmdStr
     try
       return execSync cmdStr, timeout:5e3, encoding:'utf8', maxBuffer:10e6
     catch e
@@ -41,7 +41,7 @@ module.exports =
                                    dismissable: true
   doSSH: (cmd) ->
     cmdStr = 'ssh ' + @server + ' ' + cmd
-    console.log cmdStr
+    # console.log cmdStr
     try
       return execSync cmdStr, timeout:5e3, encoding:'utf8', maxBuffer:10e6
     catch e
@@ -64,15 +64,33 @@ module.exports =
                    then " --exclude=.git --filter=':- .gitignore' " else ' ')
       @doRsync gitIgnStr + "#{@rootDirPath}/ #{remotePath}/"
       
-    scripts = (if action is 'save' then @setup.options.scriptsRunOnSave \
-                                   else @setup.options.scriptsRunOnCommand)
-    if scripts.length > 0
-      for script in scripts
-        remoteScript = "#{remotePath}/#{script}"
-        @doRsync "#{@serverScriptFolder}/#{script} #{remoteScript}"
-        @doSSH "chmod +x #{root}/#{script}"
-        @doSSH "#{root}/#{script}"
-
+    script = (if action is 'save' then @setup.options.scriptRunOnSave \
+                                  else @setup.options.scriptRunOnCommand)
+    if script
+      remoteScript = "#{remotePath}/#{script}"
+      @doRsync "#{@serverScriptFolder}/#{script} #{remoteScript}"
+      @doSSH "chmod +x #{root}/#{script}"
+      if @setup.options.logToConsole
+        console.log 'server-script: starting', remoteScript
+      child = spawn 'ssh', [@server, "#{root}/#{script}"]
+      if @setup.options.logToConsole
+        child.stdout.on 'data', (data) ->
+          console.log 'server-script, stdout:', data.toString()
+        child.stderr.on 'data', (data) ->
+          console.log 'server-script, stderr:', data.toString()
+      child.on 'error', (err) ->
+        atom.notifications.addError \
+          "Error executing script #{remoteScript}: " + err.message,
+           dismissable: true
+        # child = null
+      child.on 'close', (code) =>
+        if code isnt 0
+          atom.notifications.addWarning \
+            "#{remoteScript} returned code: " + code, dismissable: true
+        if @setup.options.logToConsole
+          console.log 'server-script: script', remoteScript, 'exited with code:', code
+        # child = null
+          
   deactivate: ->
     @subs.dispose()
 
