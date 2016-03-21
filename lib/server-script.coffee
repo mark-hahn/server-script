@@ -7,12 +7,12 @@ filewalker = require 'filewalker'
 gitIgParse = require 'gitignore-parser'
 cson       = require 'season'
 SubAtom    = require 'sub-atom'
-{execSync, spawn} = require 'child_process'
+{exec, spawn} = require 'child_process'
 
 module.exports =
   activate: ->
     @subs = new SubAtom
-    @subs.add atom.commands.add 'atom-workspace', 'server-script:save': => @save()
+    @subs.add atom.commands.add 'atom-workspace', 'server-script:run': => @run()
     @rootDirPath = atom.project.getDirectories()[0].getPath()
     @serverScriptFolder = path.join @rootDirPath, '.server-script'
     
@@ -30,25 +30,21 @@ module.exports =
     catch e
       atom.notifications.addError "Error processing #{name}: " + e.message,
                                    dismissable: true
-  doRsync: (cmd) ->
-    cmdStr = 'rsync -a ' + cmd
-    # console.log cmdStr
-    try
-      return execSync cmdStr, timeout:5e3, encoding:'utf8', maxBuffer:10e6
-    catch e
-      loc = @setup.server.location
-      atom.notifications.addError "Error executing rsync #{cmdStr} on #{loc}: " + e.message,
-                                   dismissable: true
-  doSSH: (cmd) ->
-    cmdStr = 'ssh ' + @server + ' ' + cmd
-    # console.log cmdStr
-    try
-      return execSync cmdStr, timeout:5e3, encoding:'utf8', maxBuffer:10e6
-    catch e
-      loc = @setup.server.location
-      atom.notifications.addError "Error executing command #{cmdStr} on #{loc}: " + e.message,
-                                   dismissable: true
-  save: (action) ->
+  doExec: (cmd, cb) ->
+    # console.log cmd
+    exec cmd, {timeout:5e3, encoding:'utf8', maxBuffer:10e6}
+    , (err, stdout, stderr) =>
+      if (err or stderr)
+        loc = @setup.server.location
+        msg = (if err then err.message else stderr)
+        atom.notifications.addError \
+          "Error executing #{cmd} on #{loc}: " + msg,
+           dismissable: true
+      if @setup.options.logToConsole and stdout
+        console.log 'server-script, cmd:', cmd, '\nstdout:', stdout
+      cb()
+      
+  run: (action) ->
     if not fs.existsSync @serverScriptFolder then @initSetupFolder(); return
     if not (@setup = @loadCsonInitFile 'server-setup.cson') or
        not (secret = @loadCsonInitFile 'secrets.cson') then return
@@ -57,40 +53,38 @@ module.exports =
     @server = usrStr + @setup.server.location
     root =  path.normalize @setup.server.projectRoot
     remotePath = @server + ':' + root
-    # console.log @server, '\n', @doSSH 'ls -al'
     
+    doScript = =>
+      script = (if action is 'save' then @setup.options.scriptRunOnSave \
+                                    else @setup.options.scriptRunOnCommand)
+      remoteScript = "#{remotePath}/#{script}"
+      @doExec "rsync -a #{@serverScriptFolder}/#{script} #{remoteScript}", =>
+        @doExec "ssh #{@server} chmod +x #{root}/#{script}", =>
+          if @setup.options.logToConsole
+            console.log 'server-script: starting', remoteScript
+          child = spawn 'ssh', [@server, "#{root}/#{script}"]
+          if @setup.options.logToConsole
+            child.stdout.on 'data', (data) ->
+              console.log 'server-script, stdout:', data.toString()
+            child.stderr.on 'data', (data) ->
+              console.log 'server-script, stderr:', data.toString()
+          child.on 'error', (err) ->
+            atom.notifications.addError \
+              "Error executing script #{remoteScript}: " + err.message,
+               dismissable: true
+          child.on 'close', (code) =>
+            if code isnt 0
+              atom.notifications.addWarning \
+                "#{remoteScript} returned code: " + code, dismissable: true
+            if @setup.options.logToConsole
+              console.log 'server-script: script', remoteScript, 'exited with code:', code
+  
     if @setup.options.syncChangedFiles
       gitIgnStr = (if @setup.options.useGitignore \
-                   then " --exclude=.git --filter=':- .gitignore' " else ' ')
-      @doRsync gitIgnStr + "#{@rootDirPath}/ #{remotePath}/"
-      
-    script = (if action is 'save' then @setup.options.scriptRunOnSave \
-                                  else @setup.options.scriptRunOnCommand)
-    if script
-      remoteScript = "#{remotePath}/#{script}"
-      @doRsync "#{@serverScriptFolder}/#{script} #{remoteScript}"
-      @doSSH "chmod +x #{root}/#{script}"
-      if @setup.options.logToConsole
-        console.log 'server-script: starting', remoteScript
-      child = spawn 'ssh', [@server, "#{root}/#{script}"]
-      if @setup.options.logToConsole
-        child.stdout.on 'data', (data) ->
-          console.log 'server-script, stdout:', data.toString()
-        child.stderr.on 'data', (data) ->
-          console.log 'server-script, stderr:', data.toString()
-      child.on 'error', (err) ->
-        atom.notifications.addError \
-          "Error executing script #{remoteScript}: " + err.message,
-           dismissable: true
-        # child = null
-      child.on 'close', (code) =>
-        if code isnt 0
-          atom.notifications.addWarning \
-            "#{remoteScript} returned code: " + code, dismissable: true
-        if @setup.options.logToConsole
-          console.log 'server-script: script', remoteScript, 'exited with code:', code
-        # child = null
-          
+                   then "--exclude=.git --filter=':- .gitignore' " else '')
+      @doExec "rsync -a #{gitIgnStr}#{@rootDirPath}/ #{remotePath}/", doScript
+    else doScript()
+        
   deactivate: ->
     @subs.dispose()
 
