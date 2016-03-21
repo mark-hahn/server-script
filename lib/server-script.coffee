@@ -4,7 +4,7 @@
 fs         = require 'fs-plus'
 path       = require 'path'
 filewalker = require 'filewalker'
-parser     = require 'gitignore-parser'
+gitIgParse = require 'gitignore-parser'
 cson       = require 'season'
 SubAtom    = require 'sub-atom'
 {execSync} = require 'child_process'
@@ -12,17 +12,12 @@ SubAtom    = require 'sub-atom'
 module.exports =
   activate: ->
     @subs = new SubAtom
-    try
-      @gitignore = parser.compile fs.readFileSync ".gitignore", "utf8"
-    catch e
-      @gitignore = null
     @subs.add atom.commands.add 'atom-workspace', 'server-script:save': => @save()
     @rootDirPath = atom.project.getDirectories()[0].getPath()
     @serverScriptFolder = path.join @rootDirPath, '.server-script'
     
   initSetupFolder: ->
     fs.copySync 'init-setup-folder', @serverScriptFolder
-    ignorePath = path.join @serverScriptFolder, '.gitignore'
     fs.writeFileSync ignorePath, 'secrets.cson\n.run-server-script.sh\n'
     atom.notifications.addInfo \
         "A new .server-script folder was created in the root folder. " +
@@ -49,13 +44,19 @@ module.exports =
        not (secret = @loadCsonInitFile 'secrets.cson') then return
     pwdStr = (if secret.password then ':' + password else '')
     @server = secret.login.user + pwdStr + '@' + @setup.server.location
+    # console.log @setup, secret, @server
+    # console.log @doSSH 'ls -al'
     
-    runScript = fs.readFileSync 'init-setup-folder/.run-server-script.sh', 'utf8'
-    runPath = path.join @serverScriptFolder, '.run-server-script.sh'
-    fs.writeFileSync runPath, runScript
-    console.log @setup, secret, @server
+    if @setup.options.syncChangedFiles
+      remotePath = @server + ':' + path.normalize @setup.server.projectRoot
+      cmd = "rsync -a --filter=':- .gitignore' #{@rootDirPath}/ #{remotePath}/\n"
+      console.log cmd
+      console.log execSync cmd, timeout:5e3, encoding:'utf8', maxBuffer:10e6
     
-    console.log @doSSH 'ls -al'
+    # runScript = fs.readFileSync 'init-setup-folder/.run-server-script.sh', 'utf8'
+    # runPath = path.join @serverScriptFolder, '.run-server-script.sh'
+    # fs.writeFileSync runPath, runScript
+    
   #
   #   
   #   
