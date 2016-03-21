@@ -40,16 +40,18 @@ module.exports =
                                    dismissable: true
   save: ->
     if not fs.existsSync @serverScriptFolder then @initSetupFolder(); return
-    if not (@setup  = @loadCsonInitFile 'server-setup.cson') or
+    if not (@setup = @loadCsonInitFile 'server-setup.cson') or
        not (secret = @loadCsonInitFile 'secrets.cson') then return
-    pwdStr = (if secret.password then ':' + password else '')
-    @server = secret.login.user + pwdStr + '@' + @setup.server.location
-    # console.log @setup, secret, @server
-    # console.log @doSSH 'ls -al'
+    pwdStr = (if secret.login.password then ':' + secret.login.password else '')
+    usrStr = (if secret.login.user then secret.login.user + pwdStr + '@' else '')
+    @server = usrStr + @setup.server.location
+    console.log @server, '\n', @doSSH 'ls -al'
     
     if @setup.options.syncChangedFiles
+      gitIgnStr = (if @setup.options.useGitignore \
+                   then " --exclude=.git --filter=':- .gitignore' " else ' ')
       remotePath = @server + ':' + path.normalize @setup.server.projectRoot
-      cmd = "rsync -a --filter=':- .gitignore' #{@rootDirPath}/ #{remotePath}/\n"
+      cmd = 'rsync -a' + gitIgnStr + "#{@rootDirPath}/ #{remotePath}/\n"
       console.log cmd
       console.log execSync cmd, timeout:5e3, encoding:'utf8', maxBuffer:10e6
     
