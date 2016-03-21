@@ -2,6 +2,10 @@
 
 *Atom editor package to sync files and/or run a script on the server*
 
+
+![server-script](https://cloud.githubusercontent.com/assets/811455/13936809/970eaf56-ef7d-11e5-858b-589a63b23419.gif)
+
+
 ### Sync files (Optional)
 
 You can sync local changed files to a server by using an Atom command and/or sync on every save.
@@ -20,6 +24,8 @@ Run `apm install server-script` on the command line or use the settings page.
 - Run the Atom command `server-script:run`.  The keybinding `ctrl-alt-shift-R` is provided as a default.
 - A notification will pop up to tell you the folder `.server-script` was created in the root of your project. Note that each project will have its own folder.
 - At this point nothing will happen on execution of the `server-script:run` command or when saving. You must set up the config file first.
+- After configuring, the server-script will be immediately active. Note that all server operations are run in the background.  So even though the commands in the console may appear slow nothing is blocking.  You may go back to editing with no delay.
+- Any changes to the configuration are immediately applied.
 
 ### Contents Of The `.server-script` Folder
 
