@@ -18,6 +18,11 @@ Write and edit a script on the local machine with Atom and then run the script o
 
 Run `apm install server-script` on the command line or use the settings page.
 
+**There is no need to install anything on the server.**
+
+Your local machine must have `rsync` installed.
+Your local machine and the server must have `ssh` running. Test that SSH works by executing `ssh myUser@myServer.com ls` on the command line.  If you need a password to access the server use `ssh myUser:myPwd@myServer.com ls`.
+
 ### Usage
 
 - Load a project
