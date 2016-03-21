@@ -15,19 +15,21 @@ module.exports =
     catch e
       @gitignore = null
     @subs.add atom.commands.add 'atom-workspace', 'server-script:save': => @save()
+    @rootDirPath = atom.project.getDirectories()[0].getPath()
+    @serverScriptFolder = path.join @rootDirPath, '.server-script'
     
   initSetupFolder: ->
     fs.copySync 'init-setup-folder', @serverScriptFolder
     ignorePath = path.join @serverScriptFolder, '.gitignore'
     fs.writeFileSync ignorePath, 'secrets.cson\n.run-server-script.sh\n'
     atom.notifications.addInfo \
-        "A new .server-script folder was created in the root folder.", dismissable: true
+        "A new .server-script folder was created in the root folder. " +
+        "Edit .server-script/server-setup.cson to start using server-script.", 
+        dismissable: true
     
   save: ->
-    @rootDirPath = atom.project.getDirectories()[0].getPath()
-    @serverScriptFolder = path.join @rootDirPath, '.server-script'
-    if not fs.existsSync @serverScriptFolder
-      @initSetupFolder()
+    if not fs.existsSync @serverScriptFolder then @initSetupFolder(); return
+    
   #     
   #   
   #   
