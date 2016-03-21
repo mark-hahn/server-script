@@ -9,7 +9,7 @@ server:
 
 options:
   syncChangedFiles: no
-  scriptOnRun:  '' # use 'build.sh' for testing
+  scriptOnRun:  'build.sh'
   scriptOnSave: '' 
   useGitignore: yes
   logToConsole: yes

@@ -13,8 +13,9 @@ module.exports =
   activate: ->
     @subs = new SubAtom
     @subs.add atom.commands.add 'atom-workspace', 'server-script:run': => @run 'run'
-    @rootDirPath = atom.project.getDirectories()[0].getPath()
-    @serverScriptFolder = path.join @rootDirPath, '.server-script'
+    @gitIgnoreStr = "--exclude=.git --filter=':- .gitignore' "
+    atom.workspace.observeTextEditors (editor) =>
+      @subs.add editor.onDidSave => @run 'save'
     
   initSetupFolder: ->
     fs.copySync 'init-setup-folder', @serverScriptFolder
@@ -32,21 +33,26 @@ module.exports =
       atom.notifications.addError "Error processing #{name}: " + e.message,
                                    dismissable: true
   doExec: (cmd, cb) ->
-    # console.log cmd
+    if @setup.options.logToConsole
+      console.log 'server-script:', cmd
     exec cmd, {timeout:5e3, encoding:'utf8', maxBuffer:10e6}
     , (err, stdout, stderr) =>
       if (err or stderr)
         loc = @setup.server.location
         msg = (if err then err.message else stderr)
         atom.notifications.addError \
-          "Error executing #{cmd} on #{loc}: " + msg,
+          "Error executing server-script command: " + msg,
            dismissable: true
       if @setup.options.logToConsole and stdout
         console.log 'server-script, cmd:', cmd, '\nstdout:', stdout
       cb()
       
   run: (action) ->
-    if not fs.existsSync @serverScriptFolder then @initSetupFolder(); return
+    @rootDirPath = atom.project.getDirectories()[0].getPath()
+    @serverScriptFolder = path.join @rootDirPath, '.server-script'
+    if not fs.existsSync @serverScriptFolder 
+      if action is 'run' then @initSetupFolder()
+      return
     if not (@setup = @loadCsonInitFile 'server-setup.cson') or
        not (secret = @loadCsonInitFile 'secrets.cson') then return
     if action is 'run' and 
@@ -56,11 +62,12 @@ module.exports =
           "Server-script has nothing to run. " +
           "Edit .server-script/server-setup.cson to start using server-script.", 
            dismissable: true
-      return
+      return 
     pwdStr = (if secret.login.password then ':' + secret.login.password else '')
     usrStr = (if secret.login.user then secret.login.user + pwdStr + '@' else '')
     @server = usrStr + @setup.server.location
     root =  path.normalize @setup.server.projectRoot
+    if root[-1..-1] is '/' then root = root[0..-2]
     remotePath = @server + ':' + root
     
     doScript = =>
@@ -88,10 +95,8 @@ module.exports =
                   "#{remoteScript} returned code: " + code, dismissable: true
               if @setup.options.logToConsole
                 console.log 'server-script: script', remoteScript, 'exited with code:', code
-    
     if @setup.options.syncChangedFiles
-      gitIgnStr = (if @setup.options.useGitignore \
-                   then "--exclude=.git --filter=':- .gitignore' " else '')
+      gitIgnStr = (if @setup.options.useGitignore then @gitIgnoreStr else '')
       @doExec "rsync -a #{gitIgnStr}#{@rootDirPath}/ #{remotePath}/", doScript
     else doScript()
         
