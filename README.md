@@ -36,7 +36,7 @@ Your local machine and the server must have `ssh` running. Test that SSH works b
 
 - `.gitignore`: This is a local version of a `.gitignore` file.  It contains one entry to block the commit of the file `secrets.cson` which contains sensitive login information.
 
-- `secrets.cson`: Server login information. This doesn't need to be set up if you are using SSS keys and the local user is the same as the user on the server.  See the file for instructions.
+- `secrets.cson`: Server login information. This doesn't need to be set up if you are using SSH key files and the local user is the same as the user on the server.  See the file for instructions.
 
 - `setup.cson`: General configuation for the server connection and options.
 
@@ -50,7 +50,7 @@ Your local machine and the server must have `ssh` running. Test that SSH works b
 
 
 - **options**:
-  - **syncChangedFiles**: On every server-script run command and/or when saving, sync local project directory with remote.  Default is `yes`
+  - **syncChangedFiles**: On every server-script run command and/or when saving, sync local project directory with remote.  Default is `no`
   - **scriptOnRun**:  A script to run on the server when `server-script:run` is executed. If this is blank then nothing is run.  Default is `build.sh`.
   - **scriptOnSave**:  A script to run on the server on every file save. If this is blank then nothing is run on save.  Default is blank.
   - **useGitignore**: Enable to avoid syncing files to the server that are ignored in the `.gitignore` file.  Default is `yes`.

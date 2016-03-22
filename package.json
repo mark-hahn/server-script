@@ -1,6 +1,6 @@
 {
   "name": "server-script",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Atom editor package to sync files and/or run a script on the server",
   "main": "lib/server-script.coffee",
   "repository": {
