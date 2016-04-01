@@ -17,7 +17,7 @@ module.exports =
       @subs.add editor.onDidSave => @run 'save'
     
   initSetupFolder: ->
-    fs.copySync 'init-setup-folder', @serverScriptFolder
+    fs.copySync (path.join __dirname, '../init-setup-folder'), @serverScriptFolder
     ignorePath = @serverScriptFolder + '/.ignore'
     fs.writeFileSync ignorePath, 'secrets.cson\n'
     atom.notifications.addInfo \
